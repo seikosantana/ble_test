@@ -128,11 +128,11 @@ class _PairDialogState extends State<PairDialog> {
                       BluetoothCharacteristic characteristic = services
                           .firstWhere((service) =>
                               service.uuid.toString() ==
-                              "4fafc201-1fb5-459e-8fcc-c5c9c331914b")
+                              DATA_SERVICE_UUID)
                           .characteristics
                           .firstWhere((element) =>
                               element.uuid.toString() ==
-                              "d75b6b0c-5be7-434f-9653-4d0ebadfe578");
+                              DATA_CHARACTERISTIC_UUID);
                       await characteristic.setNotifyValue(true);
                       Stream<List<int>> stream =
                           characteristic.onValueChangedStream;

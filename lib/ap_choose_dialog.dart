@@ -7,6 +7,18 @@ import 'package:ble_test/psk_request_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
+// Service for device connection info
+const String INFO_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914d";
+const String INFO_CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a7";
+
+// Service for user input SSID and PSK
+const String CRED_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914c";
+const String CRED_CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+
+// Service for available AP SSID, RSSI
+const String DATA_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+const String DATA_CHARACTERISTIC_UUID = "d75b6b0c-5be7-434f-9653-4d0ebadfe578";
+
 class ApChooseDialog extends StatefulWidget {
   final BluetoothDevice device;
   final Stream<List<int>> stream;
@@ -48,7 +60,7 @@ class _ApChooseDialogState extends State<ApChooseDialog> {
       ];
     } else {
       if (value.isValidJson()) {
-        return AccessPoint.fromJsonList(jsonDecode(value))
+        return AccessPoint.fromDeviceJson(value)
             .map((e) => SimpleDialogOption(
                   child: Text(e.ssid),
                   onPressed: () async {
@@ -61,12 +73,12 @@ class _ApChooseDialogState extends State<ApChooseDialog> {
                     BluetoothService userInputCredService = services.firstWhere(
                         (element) =>
                             element.uuid.toString() ==
-                            "4fafc201-1fb5-459e-8fcc-c5c9c331914c");
+                            CRED_SERVICE_UUID);
                     BluetoothCharacteristic userInputCharacteristic =
                         userInputCredService.characteristics.firstWhere(
                             (element) =>
                                 element.uuid.toString() ==
-                                "beb5483e-36e1-4688-b7f5-ea07361b26a8");
+                                CRED_CHARACTERISTIC_UUID);
 
                     String value =
                         jsonEncode({"ssid": e.ssid, "psk": password});

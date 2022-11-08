@@ -1,18 +1,27 @@
+import 'dart:convert';
+import 'package:ble_test/wifi_auth.dart';
+
+
+
 class AccessPoint {
   final String ssid;
   final int rssi;
+  final WiFiAuthRequirement wiFiAuth;
 
-  AccessPoint({required this.ssid, required this.rssi});
+  AccessPoint({required this.ssid, required this.rssi, required this.wiFiAuth});
 
-  factory AccessPoint.fromJson(Map<String, dynamic> object) {
-    return AccessPoint(ssid: object["ssid"], rssi: object["rssi"]);
-  }
-
-  static List<AccessPoint> fromJsonList(List<dynamic> json) {
-    return json.map<AccessPoint>((e) => AccessPoint.fromJson(e)).toList();
-  }
-
-  Map<String, dynamic> toJson() {
-    return {"ssid": ssid, "rssi": rssi};
+  static List<AccessPoint> fromDeviceJson(String jsonString) {
+    Map<String, dynamic> decoded = jsonDecode(jsonString);
+    List<AccessPoint> result = [];
+    for (var element in decoded.keys) {
+      result.add(AccessPoint(
+        ssid: element,
+        rssi: decoded[element][1],
+        wiFiAuth: decoded[element][0] == 0
+            ? WiFiAuthRequirement.Open
+            : WiFiAuthRequirement.Password,
+      ));
+    }
+    return result;
   }
 }

@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'package:ble_test/wifi_auth.dart';
 
-
-
 class AccessPoint {
   final String ssid;
   final int rssi;
@@ -16,8 +14,8 @@ class AccessPoint {
     for (var element in decoded.keys) {
       result.add(AccessPoint(
         ssid: element,
-        rssi: decoded[element][1],
-        wiFiAuth: decoded[element][0] == 0
+        rssi: decoded[element][0],
+        wiFiAuth: decoded[element][1] == 0
             ? WiFiAuthRequirement.Open
             : WiFiAuthRequirement.Password,
       ));

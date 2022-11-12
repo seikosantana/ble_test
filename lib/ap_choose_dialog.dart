@@ -6,6 +6,7 @@ import 'package:ble_test/helper.dart';
 import 'package:ble_test/psk_request_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:ble_test/pair_result_dialog.dart';
 
 // Service for device connection info
 const String INFO_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914d";
@@ -32,7 +33,9 @@ class ApChooseDialog extends StatefulWidget {
 
 class _ApChooseDialogState extends State<ApChooseDialog> {
   StreamSubscription<List<int>>? subscription;
-  String? value;
+  StreamSubscription<List<int>>? deviceNetworkInfoSubscription;
+  Stream<List<int>>? deviceNetworkInfoStream;
+  String? value, deviceNetworkInfoValue;
 
   @override
   void initState() {
@@ -48,7 +51,23 @@ class _ApChooseDialogState extends State<ApChooseDialog> {
   @override
   void dispose() {
     subscription?.cancel();
+    deviceNetworkInfoSubscription?.cancel();
     super.dispose();
+  }
+
+  List<Widget> scanningIndicator(String ssid) {
+    return [
+      const ListTile(
+        title: Text("Connecting device to ssid", textAlign: TextAlign.center),
+        dense: true,
+      ),
+      const Center(
+        child: CircularProgressIndicator(),
+      ),
+      const SizedBox(
+        height: 20,
+      ),
+    ];
   }
 
   List<Widget> buildList(String? value) {
@@ -62,7 +81,7 @@ class _ApChooseDialogState extends State<ApChooseDialog> {
       if (value.isValidJson()) {
         return AccessPoint.fromDeviceJson(value)
             .map((e) => SimpleDialogOption(
-                  child: Text(e.ssid),
+                  child: Text("${e.ssid} ${e.rssi}"),
                   onPressed: () async {
                     String? password = await showDialog(
                         context: context,
@@ -72,18 +91,44 @@ class _ApChooseDialogState extends State<ApChooseDialog> {
                         await widget.device.discoverServices();
                     BluetoothService userInputCredService = services.firstWhere(
                         (element) =>
-                            element.uuid.toString() ==
-                            CRED_SERVICE_UUID);
+                            element.uuid.toString() == CRED_SERVICE_UUID);
                     BluetoothCharacteristic userInputCharacteristic =
                         userInputCredService.characteristics.firstWhere(
                             (element) =>
                                 element.uuid.toString() ==
                                 CRED_CHARACTERISTIC_UUID);
 
+                    // Listen for network information before send credential
+                    BluetoothCharacteristic deviceNetworkInfoService = services
+                        .firstWhere((service) =>
+                            service.uuid.toString() == INFO_SERVICE_UUID)
+                        .characteristics
+                        .firstWhere((element) =>
+                            element.uuid.toString() ==
+                            INFO_CHARACTERISTIC_UUID);
+                    await deviceNetworkInfoService.setNotifyValue(true);
+                    deviceNetworkInfoStream =
+                        deviceNetworkInfoService.onValueChangedStream;
+
+                    deviceNetworkInfoSubscription =
+                        deviceNetworkInfoStream!.listen((bytes) {
+                      setState(() {
+                        deviceNetworkInfoValue = utf8.decode(bytes);
+                      });                      
+                      print(deviceNetworkInfoValue);
+                      Map<String, dynamic> json =
+                          jsonDecode(deviceNetworkInfoValue!);
+                      deviceNetworkInfoSubscription?.cancel();
+                      showDialog(
+                          context: context,
+                          builder: (context) => PairResultDialog(
+                              status: json["status"], ssid: e.ssid));
+                    });                    
+
                     String value =
                         jsonEncode({"ssid": e.ssid, "psk": password});
 
-                    await userInputCharacteristic.write(utf8.encode(value));
+                    await userInputCharacteristic.write(utf8.encode(value));                    
                   },
                 ))
             .toList();

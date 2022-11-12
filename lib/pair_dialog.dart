@@ -59,7 +59,14 @@ class _PairDialogState extends State<PairDialog> {
         FlutterBluePlus.instance.scanResults.listen((List<ScanResult> results) {
       if (!mounted) return;
       setState(() {
-        scanResults = results;
+        // remove empty device name
+        scanResults = [];
+        for (var element in results) {
+          if (element.device.name.contains("IOTA")) {
+            scanResults.add(element);
+          }
+        }
+        // scanResults = results;
       });
     });
   }
@@ -96,6 +103,26 @@ class _PairDialogState extends State<PairDialog> {
     ];
   }
 
+  Widget loadingIndicator(String title) {
+    return AlertDialog(
+        title: Text(title, textAlign: TextAlign.center),
+        content: const SizedBox(
+          height: 40,
+          width: 40,
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+            child: const Text("CANCEL"),
+          )
+        ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     return SimpleDialog(
@@ -109,8 +136,11 @@ class _PairDialogState extends State<PairDialog> {
               .map((ScanResult result) => SimpleDialogOption(
                     onPressed: () async {
                       try {
+                        showDialog(
+                            context: context,
+                            builder: (context) => loadingIndicator(
+                                "Connecting to ${result.device.name}"));
                         await result.device.connect(autoConnect: false);
-                        print("Connected");
                       } catch (e) {
                         if ((e as PlatformException).code ==
                             "already_connected") {
@@ -127,8 +157,7 @@ class _PairDialogState extends State<PairDialog> {
                           await result.device.discoverServices();
                       BluetoothCharacteristic characteristic = services
                           .firstWhere((service) =>
-                              service.uuid.toString() ==
-                              DATA_SERVICE_UUID)
+                              service.uuid.toString() == DATA_SERVICE_UUID)
                           .characteristics
                           .firstWhere((element) =>
                               element.uuid.toString() ==
@@ -136,6 +165,12 @@ class _PairDialogState extends State<PairDialog> {
                       await characteristic.setNotifyValue(true);
                       Stream<List<int>> stream =
                           characteristic.onValueChangedStream;
+
+                      // dismiss loading indicator
+                      if (mounted) {
+                        Navigator.pop(context);
+                        print("Connected");
+                      }
 
                       await showDialog(
                           context: context,

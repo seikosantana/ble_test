@@ -1,13 +1,12 @@
 import 'dart:convert';
 
-extension StringValidators on String{
+extension StringValidators on String {
   bool isValidJson() {
     bool success = false;
     try {
       jsonDecode(this);
       success = true;
-    }
-    on FormatException catch (e) {
+    } on FormatException catch (e) {
       success = false;
     }
     return success;

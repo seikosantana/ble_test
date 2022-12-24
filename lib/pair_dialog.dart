@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:app_settings/app_settings.dart';
 import 'package:ble_test/ap_choose_dialog.dart';
@@ -62,6 +63,7 @@ class _PairDialogState extends State<PairDialog> {
         // remove empty device name
         scanResults = [];
         for (var element in results) {
+          // print("BLE device : " + element.device.name);
           if (element.device.name.contains("IOTA")) {
             scanResults.add(element);
           }
@@ -151,10 +153,17 @@ class _PairDialogState extends State<PairDialog> {
                         }
                         print(e);
                       }
+                      print(connectedDevice);
                       connectedDevice = result.device;
                       await connectedDevice?.requestMtu(512);
+                      connectedDevice?.clearGattCache();
                       List<BluetoothService> services =
                           await result.device.discoverServices();
+                      // log("first found services = ");
+                      // log(services.toString());                      
+                      // services = await result.device.discoverServices();
+                      // log("second found services = ");
+                      // log(services.toString());
                       BluetoothCharacteristic characteristic = services
                           .firstWhere((service) =>
                               service.uuid.toString() == DATA_SERVICE_UUID)

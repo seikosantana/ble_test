@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:ble_test/access_point.dart';
 import 'package:ble_test/helper.dart';
@@ -87,8 +88,10 @@ class _ApChooseDialogState extends State<ApChooseDialog> {
                         context: context,
                         builder: (context) =>
                             PskRequestDialog(ssid: e.ssid)) as String?;
+                    widget.device.clearGattCache();
                     List<BluetoothService> services =
                         await widget.device.discoverServices();
+                    log(services.toString());
                     BluetoothService userInputCredService = services.firstWhere(
                         (element) =>
                             element.uuid.toString() == CRED_SERVICE_UUID);
@@ -97,7 +100,7 @@ class _ApChooseDialogState extends State<ApChooseDialog> {
                             (element) =>
                                 element.uuid.toString() ==
                                 CRED_CHARACTERISTIC_UUID);
-
+                    print("found cred services");
                     // Listen for network information before send credential
                     BluetoothCharacteristic deviceNetworkInfoService = services
                         .firstWhere((service) =>
@@ -109,12 +112,13 @@ class _ApChooseDialogState extends State<ApChooseDialog> {
                     await deviceNetworkInfoService.setNotifyValue(true);
                     deviceNetworkInfoStream =
                         deviceNetworkInfoService.onValueChangedStream;
-
+                    print("found device network services");
                     deviceNetworkInfoSubscription =
                         deviceNetworkInfoStream!.listen((bytes) {
                       setState(() {
                         deviceNetworkInfoValue = utf8.decode(bytes);
-                      });                      
+                      });  
+                      print("device network value");                    
                       print(deviceNetworkInfoValue);
                       Map<String, dynamic> json =
                           jsonDecode(deviceNetworkInfoValue!);
@@ -123,12 +127,14 @@ class _ApChooseDialogState extends State<ApChooseDialog> {
                           context: context,
                           builder: (context) => PairResultDialog(
                               status: json["status"], ssid: e.ssid));
-                    });                    
+                    });              
 
                     String value =
                         jsonEncode({"ssid": e.ssid, "psk": password});
-
-                    await userInputCharacteristic.write(utf8.encode(value));                    
+                    print("value : ");
+                    print(value);
+                    await userInputCharacteristic.write(utf8.encode(value));                   
+                    print("write succeed");
                   },
                 ))
             .toList();
